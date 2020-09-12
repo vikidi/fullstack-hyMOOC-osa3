@@ -27,6 +27,8 @@ let persons = [
 const app = express()
 app.use(express.json())
 
+const generateId = () => Math.floor(Math.random()*100000) // Dumb way to do ID generation but anyways...
+
 app.get('/info', (req, res) => {
     res.send(`<p>Phonebook has info for ${persons.length} people</p>` +
              `<p>${Date(Date.now()).toString()}</p>`)
@@ -34,6 +36,35 @@ app.get('/info', (req, res) => {
 
 app.get('/api/persons', (req, res) => {
     res.json(persons)
+})
+  
+app.post('/api/persons', (req, res) => {
+    const body = req.body
+
+    if (!body.name) {
+        return res.status(400).json({ 
+          error: 'name is missing' 
+        })
+    }
+    else if (!body.number) {
+        return res.status(400).json({ 
+          error: 'number is missing' 
+        })
+    }
+    else if (persons.some(person => person.name === body.name)) {
+        return res.status(400).json({ 
+          error: 'name must be unique' 
+        })
+    }
+
+    const person = {
+        name: body.name,
+        number: body.number,
+        id: generateId(),
+    }
+
+    persons = persons.concat(person)
+    res.json(person)
 })
 
 app.get('/api/persons/:id', (req, res) => {
