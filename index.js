@@ -1,5 +1,5 @@
-const http = require('http')
 const express = require('express')
+const morgan = require('morgan')
 
 let persons = [
     {
@@ -25,7 +25,17 @@ let persons = [
 ]
 
 const app = express()
+
 app.use(express.json())
+
+morgan.token('person', (req, res) => {
+    if (req.method === 'POST') {
+        return JSON.stringify(req.body)
+    }
+})
+
+// tiny + custom person logging
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :person'))
 
 const generateId = () => Math.floor(Math.random()*100000) // Dumb way to do ID generation but anyways...
 

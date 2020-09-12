@@ -20,7 +20,7 @@
   "homepage": "https://github.com/vikidi/fullstack-hyMOOC-osa3#readme",
   "dependencies": {
     "express": "^4.17.1",
-    "http": "0.0.1-security"
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"
