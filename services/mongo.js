@@ -1,8 +1,8 @@
 const mongoose = require('mongoose')
 
 if (process.argv.length < 3) {
-  console.log('Give password as argument')
-  process.exit(1)
+    console.log('Give password as argument')
+    process.exit(1)
 }
 
 const password = process.argv[2]
@@ -26,19 +26,19 @@ if (name && number) {
         name: name,
         number: number
     })
-    
+
     person.save()
-    .then(response => {
-        mongoose.connection.close()
-    })
+        .then(() => {
+            mongoose.connection.close()
+        })
 }
 else {
     Person.find({})
-    .then(response => {
-        console.log('Phonebook:');
-        response.forEach(person => {
-            console.log(`${person.name} ${person.number}`);
+        .then(response => {
+            console.log('Phonebook:')
+            response.forEach(person => {
+                console.log(`${person.name} ${person.number}`)
+            })
+            mongoose.connection.close()
         })
-        mongoose.connection.close()
-    })
 }
