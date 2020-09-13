@@ -1,7 +1,11 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 
+const Person = require('./models/Person')
+
+// For debug still
 let persons = [
     {
         name: 'Arto Hellas',
@@ -30,6 +34,7 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
+// Custom person logging
 morgan.token('person', (req, res) => {
     if (req.method === 'POST') {
         return JSON.stringify(req.body)
@@ -45,12 +50,21 @@ app.use(express.static('build'))
 const generateId = () => Math.floor(Math.random()*100000) // Dumb way to do ID generation but anyways...
 
 app.get('/info', (req, res) => {
-    res.send(`<p>Phonebook has info for ${persons.length} people</p>` +
-             `<p>${Date(Date.now()).toString()}</p>`)
+    Person.count({})
+    .then(count => {
+        res.send(`<p>Phonebook has info for ${count} people</p>` +
+                 `<p>${Date(Date.now()).toString()}</p>`)
+    })
+    .catch(err => {
+        res.statusCode(404).end()
+    })
 })
 
 app.get('/api/persons', (req, res) => {
-    res.json(persons)
+    Person.find({})
+    .then(persons => {
+        res.json(persons)
+    })
 })
   
 app.post('/api/persons', (req, res) => {
@@ -66,33 +80,36 @@ app.post('/api/persons', (req, res) => {
           error: 'number is missing' 
         })
     }
+    /* TODO: NOT IN THIS EXCERCISE
     else if (persons.some(person => person.name === body.name)) {
         return res.status(400).json({ 
           error: 'name must be unique' 
         })
     }
+    */
 
-    const person = {
+    const person = new Person({
         name: body.name,
-        number: body.number,
-        id: generateId(),
-    }
+        number: body.number
+    })
 
-    persons = persons.concat(person)
-    res.json(person)
+    person.save()
+    .then(newPerson => {
+        res.json(newPerson)
+    })
 })
 
 app.get('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    const person = persons.find(person => person.id === id)
-    
-    if (person) {
-      res.json(person)
-    } else {
-      res.status(404).end()
-    }
+    Person.findById(req.params.id)
+    .then(person => {
+        res.json(person)
+    })
+    .catch(err => {
+        res.status(404).end()
+    })
 })
 
+// TODO: Not connected to mongo
 app.delete('/api/persons/:id', (req, res) => {
     const id = Number(req.params.id)
 
@@ -105,7 +122,7 @@ app.delete('/api/persons/:id', (req, res) => {
     }
 })
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
