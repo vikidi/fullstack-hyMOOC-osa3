@@ -43,24 +43,6 @@ app.get('/api/persons', (req, res, next) => {
 app.post('/api/persons', (req, res, next) => {
     const body = req.body
 
-    if (!body.name) {
-        return res.status(400).json({ 
-          error: 'name is missing' 
-        })
-    }
-    else if (!body.number) {
-        return res.status(400).json({ 
-          error: 'number is missing' 
-        })
-    }
-    /* TODO: NOT IN THIS EXCERCISE
-    else if (persons.some(person => person.name === body.name)) {
-        return res.status(400).json({ 
-          error: 'name must be unique' 
-        })
-    }
-    */
-
     const person = new Person({
         name: body.name,
         number: body.number
@@ -123,6 +105,9 @@ app.use((err, req, res, next) => {
 
     if (err.name === 'CastError') {
         return res.status(400).send({ error: 'malformatted id' })
+    }
+    else if (err.name === 'ValidationError') {
+        return res.status(400).json({ error: err.message })
     }
 
     next(err)
