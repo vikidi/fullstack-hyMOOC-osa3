@@ -5,34 +5,13 @@ const cors = require('cors')
 
 const Person = require('./models/Person')
 
-// For debug still
-let persons = [
-    {
-        name: 'Arto Hellas',
-        number: '040-123456',
-        id: 1
-    },
-    {
-        name: 'Ada Lovelace',
-        number: '39-44-5323523',
-        id: 2
-    },
-    {
-        name: 'Dan Abramov',
-        number: '12-43-234345',
-        id: 3
-    },
-    {
-        name: 'Mary Poppendieck',
-        number: '39-23-6423122',
-        id: 4
-    }
-]
-
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+
+// For react frontend
+app.use(express.static('build'))
 
 // Custom person logging
 morgan.token('person', (req, res) => {
@@ -44,30 +23,24 @@ morgan.token('person', (req, res) => {
 // tiny + custom person logging
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :person'))
 
-// For react frontend
-app.use(express.static('build'))
-
-const generateId = () => Math.floor(Math.random()*100000) // Dumb way to do ID generation but anyways...
-
-app.get('/info', (req, res) => {
-    Person.count({})
+app.get('/info', (req, res, next) => {
+    Person.countDocuments({})
     .then(count => {
         res.send(`<p>Phonebook has info for ${count} people</p>` +
                  `<p>${Date(Date.now()).toString()}</p>`)
     })
-    .catch(err => {
-        res.statusCode(404).end()
-    })
+    .catch(err => next(err))
 })
 
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (req, res, next) => {
     Person.find({})
     .then(persons => {
         res.json(persons)
     })
+    .catch(err => next(err))
 })
   
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
     const body = req.body
 
     if (!body.name) {
@@ -97,29 +70,62 @@ app.post('/api/persons', (req, res) => {
     .then(newPerson => {
         res.json(newPerson)
     })
+    .catch(err => next(err))
 })
 
-app.get('/api/persons/:id', (req, res) => {
+app.get('/api/persons/:id', (req, res, next) => {
     Person.findById(req.params.id)
     .then(person => {
-        res.json(person)
+        if (person) {
+            res.json(person)
+        }
+        else {
+            res.status(404).end()
+        }
     })
-    .catch(err => {
-        res.status(404).end()
-    })
+    .catch(err => next(err))
 })
 
-// TODO: Not connected to mongo
-app.delete('/api/persons/:id', (req, res) => {
+app.put('/api/persons/:id', (req, res, next) => {
+    const body = req.body
+
+    const person = {
+        name: body.name,
+        number: body.number,
+    }
+
+    Person.findByIdAndUpdate(req.params.id, person, { new: true })
+    .then(updatedPerson => {
+        res.json(updatedPerson)
+    })
+    .catch(err => next(err))
+})
+
+app.delete('/api/persons/:id', (req, res, next) => {
     const id = Number(req.params.id)
 
-    if (persons.some(person => person.id === id)) {
-        persons = persons.filter(person => person.id !== id)
+    Person.findByIdAndRemove(req.params.id)
+    .then(result => {
         res.status(204).end()
+    })
+    .catch(err => next(err))
+})
+
+// Unknown endpoint
+app.use((req, res) => {
+    res.status(404).send({ error: 'unknown endpoint' })
+})
+
+// Error handler
+app.use((err, req, res, next) => {
+    console.error(err.name)
+    console.log(err.message);
+
+    if (err.name === 'CastError') {
+        return res.status(400).send({ error: 'malformatted id' })
     }
-    else {
-        res.status(404).end()
-    }
+
+    next(err)
 })
 
 const PORT = process.env.PORT
